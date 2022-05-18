@@ -1,0 +1,30 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31321.278
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageQuantization", "ImageQuantization\ImageQuantization.csproj", "{7CA8077F-C27A-400D-B6C9-7737665499AC}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{42398BC6-67E0-445D-A9A8-B2DAED9E7C61}"
+	ProjectSection(SolutionItems) = preProject
+		PixelOperations.cs = PixelOperations.cs
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7CA8077F-C27A-400D-B6C9-7737665499AC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7CA8077F-C27A-400D-B6C9-7737665499AC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7CA8077F-C27A-400D-B6C9-7737665499AC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7CA8077F-C27A-400D-B6C9-7737665499AC}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {8402970E-FA52-4233-8D7F-1311B6BF311A}
+	EndGlobalSection
+EndGlobal
