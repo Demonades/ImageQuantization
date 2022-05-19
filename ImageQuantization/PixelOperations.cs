@@ -5,65 +5,92 @@ using System.Drawing;
 using System.Windows.Forms;
 using System.Drawing.Imaging;
 using System.Linq;
+using Lucene.Net.Util;
 
 namespace ImageQuantization
 {
+    public struct Cut
+    {
+        public int index;
+        public double distance;
+
+        public Cut(int index, double distance)
+        {
+            this.index = index;
+            this.distance = distance;
+        }
+    }
+    public struct Edge
+    {
+        public int u, v;
+        public double distance;
+
+        public Edge(int u, int v, double distance)
+        {
+            this.u = u;
+            this.v = v;
+            this.distance = distance;
+        }
+    }
     public class PixelOperations
     {
 
 
-        public struct Edge
-        {
-            public int u, v;
-            public double distance;
-            
-            public Edge(int u, int v, double distance)
-            {
-                this.u = u;
-                this.v = v;
-                this.distance = distance;
-            }
-        }
+
         public static int N = 1000000;
-        public static List<Edge> edges = new List<Edge>();
+        public static List<Edge> MST = new List<Edge>();
         public static List<RGBPixel> distinctColors = new List<RGBPixel>();
-        public static int[] parent = new int [N];
-        public static int[] size = new int[N];
+        public static int distinctSize = 0;
+        //public static int[] parent = new int [N];
+        //public static int[] size = new int[N];
         public static void master()
         {
             distinctColors = new List<RGBPixel>(GetDistinctPixels());
-            for (int i = 0; i < distinctColors.Count; i++)
+            distinctSize = distinctColors.Count;
+            for (int i = 0; i < distinctSize; i++)
             {
-                Console.WriteLine(distinctColors[i].red + " " + distinctColors[i].green + " " + distinctColors[i].blue);
+                //Console.WriteLine(distinctColors[i].red + " " + distinctColors[i].green + " " + distinctColors[i].blue);
             }
             Console.WriteLine("===================================================================================");
             Console.WriteLine("===================================================================================");
             Console.WriteLine("===================================================================================");
-            edges = ConstructEdges();
-            Kruskal();
-            Cluster(3);
-            Representatives();
+            //Kruskal();
+            Prim();
+            MST.RemoveAt(0);
+            double ans = 0;
+            foreach(Edge e in MST)
+            {
+                ans += e.distance;
+            }
+            Console.WriteLine("Distinct Colors  = " + distinctSize);
+            Console.WriteLine("MST SUM  = " + ans);
+            //Cluster(3829);
+            //Representatives();
             for(int i = 0; i < distinctColors.Count; i++)
             {
-                Console.WriteLine(distinctColors[i].red + " " + distinctColors[i].green + " " + distinctColors[i].blue);
+                //Console.WriteLine(distinctColors[i].red + " " + distinctColors[i].green + " " + distinctColors[i].blue);
             }
         }
 
 
         //FINDING DISTINCT COLORS
-        //USING A HASHSET
-        //TIME BOUNDED BY O(N^2), INSERTION INTO HASHSET IS O(1)
-        public static HashSet<RGBPixel> GetDistinctPixels()
+        public static List<RGBPixel> GetDistinctPixels()
         {
-            RGBPixel[,] imageMatrix = ImageOperations.OpenImage(@"C:\Users\Lenovo\Documents\Algo\Project\[2] Image Quantization\Testcases\Testcases\Sample\Sample Test\Case1\Sample.Case1.bmp");
-            HashSet<RGBPixel> distinctColors = new HashSet<RGBPixel>();
+            RGBPixel[,] imageMatrix = ImageOperations.OpenImage(@"C:\Users\Lenovo\Documents\Algo\Project\[2] Image Quantization\Testcases\Testcases\Sample\Sample Test\Case4\Sample.Case4.bmp");
+            List<RGBPixel> distinctColors = new List<RGBPixel>();
             int height = ImageOperations.GetHeight(imageMatrix);
             int width = ImageOperations.GetWidth(imageMatrix);
+
+            bool[,,] isDistinct = new bool[256, 256, 256];
             for(int x = 0; x < height; x++)
             {
                 for(int y = 0; y < width; y++)
                 {
-                    distinctColors.Add(imageMatrix[x, y]);
+                    if (!(isDistinct[imageMatrix[x,y].red, imageMatrix[x, y].green, imageMatrix[x, y].blue]))
+                    {
+                        isDistinct[imageMatrix[x, y].red, imageMatrix[x, y].green, imageMatrix[x, y].blue] = true;
+                        distinctColors.Add(imageMatrix[x, y]);
+                    }
                 }
             }
             return distinctColors;
@@ -76,72 +103,64 @@ namespace ImageQuantization
             int green = (u.green - v.green) * (u.green - v.green);
             return Math.Sqrt(red + blue + green);
         }
-        public static List<Edge> ConstructEdges()
+
+
+
+        public static void Prim()
         {
-            List<Edge> edges = new List<Edge>();
-            int size = distinctColors.Count;
-            for (int u = 0; u < size; u++)
+
+
+            // To represent set of vertices included in MST
+            bool[] mstSet = new bool[distinctSize];
+            PriorityQueue pq = new PriorityQueue();
+            int[] vertices = new int[distinctSize];
+            int[] parent = new int[distinctSize];
+            for(int i = 1; i < distinctSize; i++)
             {
-                for (int v = 0; v < size; v++)
-                {
-                    if (u == v)
-                        continue;
-                    Edge e = new Edge(u, v, CalculateDistance(distinctColors[u], distinctColors[v]));
-                    edges.Add(e);
+                pq.insert(new Cut(i, -double.MaxValue));
+                mstSet[i] = false;
+            }
+
+            mstSet[0] = true;
+            parent[0] = -1;
+            pq.insert(new Cut(0, 0));
+
+            for (int i = 0; i < distinctSize; i++)
+            {
+                // Pick the minimum key vertex from the
+                // set of vertices not yet included in MST
+                Cut u = pq.extractMax();
+
+                // Add the picked vertex to the MST Set
+                mstSet[u.index] = true;
+                MST.Add(new Edge(parent[u.index], u.index, -1 * u.distance));
+                // Update key value and parent index of
+                // the adjacent vertices of the picked vertex.
+                // Consider only those vertices which are not
+                // yet included in MST
+                for (int v = 0; v < distinctSize; v++) {
+                    // graph[u][v] is non zero only for adjacent vertices of m
+                    // mstSet[v] is false for vertices not yet included in MST
+                    // Update the key only if graph[u][v] is smaller than key[v]
+                    if (mstSet[v] == false) {
+                        if(pq.changePriority(v, -CalculateDistance(distinctColors[u.index], distinctColors[v]))){
+                            parent[v] = u.index;
+                        }
+                    }
                 }
             }
-            return edges;
         }
-
-        public static void Kruskal()
-        {
-            edges.Sort((e1,e2) => e1.distance.CompareTo(e2.distance));
-            List<Edge> newEdges = new List<Edge>();
-            for(int i = 0; i < parent.Length; i++)
-            {
-                parent[i] = i;
-                size[i] = 1;
-            }
-            foreach(Edge e in edges)
-            {
-                if(Join(e.u, e.v))
-                {
-                    newEdges.Add(e);
-                }
-            }
-            edges = new List<Edge>(newEdges);
-        }
-        public static int Find(int node)
-        {
-            if (node == parent[node])
-                return node;
-            return parent[node] = Find(parent[node]);
-        }
-        public static bool Join(int u, int v)
-        {
-            u = Find(u);
-            v = Find(v);
-            if (parent[u] == parent[v])
-                return false;
-            if (size[u] < size[v]){
-                int t = u; u = v; v = t;
-            }
-            parent[v] = u;
-            size[u] += size[v];
-            return true;
-        }
-
         public static void Cluster(int k)
         {
-            edges.Sort((e1, e2) => e1.distance.CompareTo(e2.distance));
-            int size = edges.Count;
+            MST.Sort((e1, e2) => e1.distance.CompareTo(e2.distance));
+            int size = MST.Count;
             List<Edge> newEdges = new List<Edge>();
 
             for (int i = 0; i < k-1; i++)
             {
-                newEdges.Add(edges[i]);
+                newEdges.Add(MST[i]);
             }
-            edges = new List<Edge>(newEdges);
+            MST = new List<Edge>(newEdges);
         }
 
         public static void Representatives()
@@ -156,7 +175,7 @@ namespace ImageQuantization
                 visited[i] = false;
             }
             //Construct graph
-            foreach (Edge e in edges)
+            foreach (Edge e in MST)
             {
                 adjList[e.u].Add(e.v);
                 adjList[e.v].Add(e.u);
