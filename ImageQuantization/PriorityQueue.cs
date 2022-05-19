@@ -12,28 +12,27 @@ namespace ImageQuantization
 	{
 
 		Cut[] H = new Cut[600000];
-		int size = -1;
+		public int size = 0;
 		int[] index = new int[600000];
-
 		// Function to return the index of the
 		// parent node of a given node
 		public int parent(int i)
 		{
-			return (i - 1) / 2;
+			return (i) / 2;
 		}
 
 		// Function to return the index of the
 		// left child of the given node
 		public int leftChild(int i)
 		{
-			return ((2 * i) + 1);
+			return ((2 * i));
 		}
 
 		// Function to return the index of the
 		// right child of the given node
 		public int rightChild(int i)
 		{
-			return ((2 * i) + 2);
+			return ((2 * i) + 1);
 		}
 
 		// Function to shift up the
@@ -41,8 +40,7 @@ namespace ImageQuantization
 		// the heap property
 		public void shiftUp(int i)
 		{
-			while (i > 0 &&
-				H[parent(i)].distance < H[i].distance)
+			while (i > 0 && H[parent(i)].distance > H[i].distance)
 			{
 
 				// Swap parent and current node
@@ -62,8 +60,8 @@ namespace ImageQuantization
 			// Left Child
 			int l = leftChild(i);
 
-			if (l <= size &&
-				H[l].distance > H[maxIndex].distance)
+			if (l < size &&
+				H[l].distance < H[maxIndex].distance)
 			{
 				maxIndex = l;
 			}
@@ -71,8 +69,8 @@ namespace ImageQuantization
 			// Right Child
 			int r = rightChild(i);
 
-			if (r <= size &&
-				H[r].distance > H[maxIndex].distance)
+			if (r < size &&
+				H[r].distance < H[maxIndex].distance)
 			{
 				maxIndex = r;
 			}
@@ -90,6 +88,8 @@ namespace ImageQuantization
 		// the Binary Heap
 		public void insert(Cut e)
 		{
+
+
 			size = size + 1;
 			H[size] = e;
 			index[size] = size;
@@ -104,19 +104,19 @@ namespace ImageQuantization
 		// maximum priority
 		public Cut extractMax()
 		{
-			Cut result = H[0];
-
+			Cut result = H[1];
 			// Replace the value
 			// at the root with
 			// the last leaf
-			H[0] = H[size];
-			index[size] = 0;
+			H[1] = H[size];
+			index[size] = 1;
+			H[size].distance = double.MaxValue;
+			shiftDown(1);
 			size = size - 1;
 
 			// Shift down the replaced
 			// element to maintain the
 			// heap property
-			shiftDown(0);
 			return result;
 		}
 
@@ -126,20 +126,13 @@ namespace ImageQuantization
 								double p)
 		{
 			double oldp = H[index[i]].distance;
-			if (p > oldp)
+			if (p < oldp)
 			{
 				H[index[i]].distance = p;
 				shiftUp(i);
 				return true;
 			}
 			return false;
-		}
-
-		// Function to get value of
-		// the current maximum element
-		public Cut getMax()
-		{
-			return H[0];
 		}
 
 		public void swap(int i, int j)

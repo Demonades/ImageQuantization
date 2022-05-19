@@ -113,27 +113,34 @@ namespace ImageQuantization
             // To represent set of vertices included in MST
             bool[] mstSet = new bool[distinctSize];
             PriorityQueue pq = new PriorityQueue();
-            int[] vertices = new int[distinctSize];
             int[] parent = new int[distinctSize];
             for(int i = 1; i < distinctSize; i++)
             {
-                pq.insert(new Cut(i, -double.MaxValue));
+                pq.insert(new Cut(i, double.MaxValue));
                 mstSet[i] = false;
+                parent[i] = -1;
             }
 
             mstSet[0] = true;
             parent[0] = -1;
             pq.insert(new Cut(0, 0));
-
-            for (int i = 0; i < distinctSize; i++)
-            {
+            while(pq.size != 0) {
                 // Pick the minimum key vertex from the
                 // set of vertices not yet included in MST
                 Cut u = pq.extractMax();
+                if(u.index == 56)
+                {
+                    //Console.WriteLine(mstSet[56]);
+                }
+                //Console.WriteLine(u.index + " " + u.distance);
 
                 // Add the picked vertex to the MST Set
+                if (mstSet[u.index] == true)
+                {
+                    Console.WriteLine("A7A " + u.index + " " + u.distance);
+                }
                 mstSet[u.index] = true;
-                MST.Add(new Edge(parent[u.index], u.index, -1 * u.distance));
+                MST.Add(new Edge(parent[u.index], u.index, u.distance));
                 // Update key value and parent index of
                 // the adjacent vertices of the picked vertex.
                 // Consider only those vertices which are not
@@ -143,10 +150,18 @@ namespace ImageQuantization
                     // mstSet[v] is false for vertices not yet included in MST
                     // Update the key only if graph[u][v] is smaller than key[v]
                     if (mstSet[v] == false) {
-                        if(pq.changePriority(v, -CalculateDistance(distinctColors[u.index], distinctColors[v]))){
+                        if(pq.changePriority(v, CalculateDistance(distinctColors[u.index], distinctColors[v]))){
                             parent[v] = u.index;
                         }
                     }
+                }
+
+            }
+            for (int i = 0; i < distinctSize; i++)
+            {
+                if (mstSet[i] == false)
+                {
+                    Console.WriteLine(i);
                 }
             }
         }
