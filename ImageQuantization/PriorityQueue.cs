@@ -16,6 +16,12 @@ namespace ImageQuantization
 		int[] index = new int[600000];
 		// Function to return the index of the
 		// parent node of a given node
+
+		public PriorityQueue()
+        {
+			H[0].distance = int.MinValue;
+			H[0].index = -1;
+        }
 		public int parent(int i)
 		{
 			return (i) / 2;
@@ -92,7 +98,7 @@ namespace ImageQuantization
 
 			size = size + 1;
 			H[size] = e;
-			index[size] = size;
+			index[e.index] = size;
 
 			// Shift Up to maintain
 			// heap property
@@ -102,14 +108,14 @@ namespace ImageQuantization
 		// Function to extract
 		// the element with
 		// maximum priority
-		public Cut extractMax()
+		public Cut extractMin()
 		{
 			Cut result = H[1];
 			// Replace the value
 			// at the root with
 			// the last leaf
 			H[1] = H[size];
-			index[size] = 1;
+			index[H[size].index] = 1;
 			H[size].distance = double.MaxValue;
 			shiftDown(1);
 			size = size - 1;
@@ -129,7 +135,7 @@ namespace ImageQuantization
 			if (p < oldp)
 			{
 				H[index[i]].distance = p;
-				shiftUp(i);
+                shiftUp(index[i]);
 				return true;
 			}
 			return false;
@@ -137,13 +143,15 @@ namespace ImageQuantization
 
 		public void swap(int i, int j)
 		{
+			int t = index[H[i].index];
+			index[H[i].index] = index[H[j].index];
+			index[H[j].index] = t;
+
 			Cut temp = H[i];
 			H[i] = H[j];
 			H[j] = temp;
 
-			int t = index[i];
-			index[i] = index[j];
-            index[j] = t;
+
 		}
 		// This code is contributed by Amit Katiyar
 	}
