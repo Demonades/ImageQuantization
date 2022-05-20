@@ -50,6 +50,10 @@ namespace ImageQuantization
 
             Prim();
             MST.RemoveAt(0);
+            foreach(Edge e in MST)
+            {
+                mstSUM += e.distance;
+            }
             Cluster(k);
             Representatives();
             Recolor();
