@@ -12,10 +12,10 @@ namespace ImageQuantization
         [STAThread]
         static void Main()
         {
-            //Application.EnableVisualStyles();
-            //Application.SetCompatibleTextRenderingDefault(false);
-            //Application.Run(new MainForm());
-            PixelOperations.master();
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+            Application.Run(new MainForm());
+            //PixelOperations.master();
             //Console.WriteLine("alooo");
             //Console.ReadLine();
         }

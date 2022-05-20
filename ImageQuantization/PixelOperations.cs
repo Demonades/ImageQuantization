@@ -5,150 +5,158 @@ using System.Drawing;
 using System.Windows.Forms;
 using System.Drawing.Imaging;
 using System.Linq;
+using Lucene.Net.Util;
 
 namespace ImageQuantization
 {
+    public struct Cut
+    {
+        public int index;
+        public double distance;
+
+        public Cut(int index, double distance)
+        {
+            this.index = index;
+            this.distance = distance;
+        }
+    }
+    public struct Edge
+    {
+        public int u, v;
+        public double distance;
+
+        public Edge(int u, int v, double distance)
+        {
+            this.u = u;
+            this.v = v;
+            this.distance = distance;
+        }
+    }
     public class PixelOperations
     {
+        public List<Edge> MST = new List<Edge>();
+        public List<RGBPixel> distinctColors = new List<RGBPixel>();
+        public int distinctSize = 0;
+        public double mstSUM;
+        public RGBPixel[,] imageMatrix;
+        public RGBPixel[,] newImageMatrix;
+        public int[,] originalImageMapping;
+        int height, width;
 
+        public RGBPixel[,] Quantize(int k)
+        {
+            GetDistinctPixels();
+            distinctSize = distinctColors.Count;
 
-        public struct Edge
-        {
-            public int u, v;
-            public double distance;
-            
-            public Edge(int u, int v, double distance)
-            {
-                this.u = u;
-                this.v = v;
-                this.distance = distance;
-            }
-        }
-        public static int N = 1000000;
-        public static List<Edge> edges = new List<Edge>();
-        public static List<RGBPixel> distinctColors = new List<RGBPixel>();
-        public static int[] parent = new int [N];
-        public static int[] size = new int[N];
-        public static void master()
-        {
-            distinctColors = new List<RGBPixel>(GetDistinctPixels());
-            for (int i = 0; i < distinctColors.Count; i++)
-            {
-                Console.WriteLine(distinctColors[i].red + " " + distinctColors[i].green + " " + distinctColors[i].blue);
-            }
-            Console.WriteLine("===================================================================================");
-            Console.WriteLine("===================================================================================");
-            Console.WriteLine("===================================================================================");
-            edges = ConstructEdges();
-            Kruskal();
-            Cluster(3);
+            Prim();
+            MST.RemoveAt(0);
+            Cluster(k);
             Representatives();
-            for(int i = 0; i < distinctColors.Count; i++)
-            {
-                Console.WriteLine(distinctColors[i].red + " " + distinctColors[i].green + " " + distinctColors[i].blue);
-            }
+            Recolor();
+            return newImageMatrix;
         }
 
 
         //FINDING DISTINCT COLORS
-        //USING A HASHSET
-        //TIME BOUNDED BY O(N^2), INSERTION INTO HASHSET IS O(1)
-        public static HashSet<RGBPixel> GetDistinctPixels()
+        public void GetDistinctPixels()
         {
-            RGBPixel[,] imageMatrix = ImageOperations.OpenImage(@"C:\Users\Lenovo\Documents\Algo\Project\[2] Image Quantization\Testcases\Testcases\Sample\Sample Test\Case1\Sample.Case1.bmp");
-            HashSet<RGBPixel> distinctColors = new HashSet<RGBPixel>();
-            int height = ImageOperations.GetHeight(imageMatrix);
-            int width = ImageOperations.GetWidth(imageMatrix);
-            for(int x = 0; x < height; x++)
+            distinctColors = new List<RGBPixel>();
+            height = ImageOperations.GetHeight(imageMatrix);
+            width = ImageOperations.GetWidth(imageMatrix);
+            originalImageMapping = new int[height, width];
+            int n = 0;
+            int[,,] isDistinct = new int[256, 256, 256];
+            for (int i = 0; i < 256; i++)
             {
-                for(int y = 0; y < width; y++)
+                for (int j = 0; j < 256; j++)
                 {
-                    distinctColors.Add(imageMatrix[x, y]);
+                    for (int l = 0; l < 256; l++)
+                    {
+                        isDistinct[i, j, l] = -1;
+                    }
                 }
             }
-            return distinctColors;
+            for (int x = 0; x < height; x++)
+            {
+                for (int y = 0; y < width; y++)
+                {
+                    if ((isDistinct[imageMatrix[x, y].red, imageMatrix[x, y].green, imageMatrix[x, y].blue]) == -1)
+                    {
+                        isDistinct[imageMatrix[x, y].red, imageMatrix[x, y].green, imageMatrix[x, y].blue] = n++;
+                        distinctColors.Add(imageMatrix[x, y]);
+                    }
+                    originalImageMapping[x, y] = isDistinct[imageMatrix[x, y].red, imageMatrix[x, y].green, imageMatrix[x, y].blue];
+                }
+            }
         }
         //CALCULATE DISTANCE BETWEEN TWO PIXELS
-        public static double CalculateDistance(RGBPixel u, RGBPixel v)
+        //MEMORIZE COLOR INDEXES FOR RECOLORING
+        public double CalculateDistance(RGBPixel u, RGBPixel v)
         {
             int red = (u.red - v.red) * (u.red - v.red);
             int blue = (u.blue - v.blue) * (u.blue - v.blue);
             int green = (u.green - v.green) * (u.green - v.green);
             return Math.Sqrt(red + blue + green);
         }
-        public static List<Edge> ConstructEdges()
+
+        //PRIM'S ALGORITHM 
+        public void Prim()
         {
-            List<Edge> edges = new List<Edge>();
-            int size = distinctColors.Count;
-            for (int u = 0; u < size; u++)
+            bool[] mstSet = new bool[distinctSize];
+            PriorityQueue pq = new PriorityQueue();
+            int[] parent = new int[distinctSize];
+            mstSet[0] = true;
+            pq.insert(new Cut(0, 0));
+            for (int i = 1; i < distinctSize; i++)
             {
-                for (int v = 0; v < size; v++)
+                pq.insert(new Cut(i, double.MaxValue));
+                mstSet[i] = false;
+            }
+            while (pq.size != 0)
+            {
+                Cut u = pq.extractMin();
+                mstSet[u.index] = true;
+                MST.Add(new Edge(parent[u.index], u.index, u.distance));
+                for (int v = 0; v < distinctSize; v++)
                 {
-                    if (u == v)
-                        continue;
-                    Edge e = new Edge(u, v, CalculateDistance(distinctColors[u], distinctColors[v]));
-                    edges.Add(e);
+                    if (mstSet[v] == false)
+                    {
+                        if (pq.changePriority(v, CalculateDistance(distinctColors[u.index], distinctColors[v])))
+                        {
+                            parent[v] = u.index;
+                        }
+                    }
                 }
             }
-            return edges;
-        }
-
-        public static void Kruskal()
-        {
-            edges.Sort((e1,e2) => e1.distance.CompareTo(e2.distance));
-            List<Edge> newEdges = new List<Edge>();
-            for(int i = 0; i < parent.Length; i++)
+            for (int i = 0; i < distinctSize; i++)
             {
-                parent[i] = i;
-                size[i] = 1;
-            }
-            foreach(Edge e in edges)
-            {
-                if(Join(e.u, e.v))
+                if (mstSet[i] == false)
                 {
-                    newEdges.Add(e);
+                    Console.WriteLine(i);
                 }
             }
-            edges = new List<Edge>(newEdges);
-        }
-        public static int Find(int node)
-        {
-            if (node == parent[node])
-                return node;
-            return parent[node] = Find(parent[node]);
-        }
-        public static bool Join(int u, int v)
-        {
-            u = Find(u);
-            v = Find(v);
-            if (parent[u] == parent[v])
-                return false;
-            if (size[u] < size[v]){
-                int t = u; u = v; v = t;
-            }
-            parent[v] = u;
-            size[u] += size[v];
-            return true;
         }
 
-        public static void Cluster(int k)
+        //REMOVE K-1 EDGES TO FORM K CLUSTERS
+        public void Cluster(int k)
         {
-            edges.Sort((e1, e2) => e1.distance.CompareTo(e2.distance));
-            int size = edges.Count;
+            MST.Sort((e1, e2) => e2.distance.CompareTo(e1.distance));
+            int size = MST.Count;
             List<Edge> newEdges = new List<Edge>();
 
             for (int i = 0; i < k-1; i++)
             {
-                newEdges.Add(edges[i]);
+                MST.RemoveAt(0);
             }
-            edges = new List<Edge>(newEdges);
         }
 
-        public static void Representatives()
+        //CONSTRUCT ONE GRAPH WHERE EACH COMPONENT REPRESENTS A CLUSTER
+        //BFS OVER EACH COMPONENT, COLLECT AND REPLACE BY ONE REPRESENTATIVE COLOR
+        public void Representatives()
         {
-            List<int>[] adjList = new List<int>[N];
+            List<int>[] adjList = new List<int>[1000000];
             int size = distinctColors.Count;
-            bool[] visited = new bool[N];
+            bool[] visited = new bool[1000000];
             //Initialize adjList
             for (int i = 0; i < size; i++)
             {
@@ -156,7 +164,7 @@ namespace ImageQuantization
                 visited[i] = false;
             }
             //Construct graph
-            foreach (Edge e in edges)
+            foreach (Edge e in MST)
             {
                 adjList[e.u].Add(e.v);
                 adjList[e.v].Add(e.u);
@@ -175,7 +183,7 @@ namespace ImageQuantization
                     {
                         int cur = q.First();
                         q.Dequeue();
-                        foreach (int child in adjList[i])
+                        foreach (int child in adjList[cur])
                         {
                             if (!visited[child])
                             {
@@ -189,7 +197,8 @@ namespace ImageQuantization
                 }
             }
         }
-        public static void ReplaceColors(List<int> cluster)
+        //COMPUTE AVERAGE COLOR OF THE CLUSTER AND REPLACE IN DISTINCT COLORS LIST
+        public void ReplaceColors(List<int> cluster)
         {
             double avg = cluster.Average();
             RGBPixel rep;
@@ -204,11 +213,23 @@ namespace ImageQuantization
             rep.red = (byte)(totalRed / cluster.Count);
             rep.green = (byte)(totalGreen / cluster.Count);
 
-            for(int i = 0; i < cluster.Count; i++)
+            for (int i = 0; i < cluster.Count; i++)
             {
                 distinctColors[cluster[i]] = rep;
             }
         }
-    }
 
+        //USE THE ORIGINAL MAPPING TO RECOLOR THE IMAGE
+        public void Recolor()
+        {
+            newImageMatrix = new RGBPixel[height, width];
+            for (int x = 0; x < height; x++)
+            {
+                for (int y = 0; y < width; y++)
+                {
+                    newImageMatrix[x, y] = distinctColors[originalImageMapping[x, y]];
+                }
+            }
+        }
+    }
 }
