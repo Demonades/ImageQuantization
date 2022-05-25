@@ -13,26 +13,25 @@ namespace ImageQuantization
     {
         public List<Edge> Edges = new List<Edge>();
         int cnt = 0;
+        int indexStart = 0, indexEnd = 0;
 
         public int Calculate()
         {
             cnt = Edges.Count;
-            double prevReduction = 0, reduction = 1, mean = CalculateMean(), prevSD = 0, SD = 1, removedEdge;
+            double mean = CalculateMean(), prevSD = 0, SD = 1, removedEdge;
             Edges.Sort((e1, e2) => e1.distance.CompareTo(e2.distance));
+            indexEnd = cnt - 1;
             int k = 1;
-            int indexStart = 0, indexEnd = cnt - 1;
             while (cnt > 2 && Math.Abs(SD-prevSD) > 0.0001)
             {
                 //Compare between first and last element, which is furthest from the mean
                 if (Math.Abs(Edges[indexStart].distance - mean) > Math.Abs(Edges[indexEnd].distance - mean)){
                     removedEdge = Edges[indexStart].distance;
-                    Edges.RemoveAt(indexStart);
                     indexStart++;
                 }
                 else
                 {
                     removedEdge = Edges[indexEnd].distance;
-                    Edges.RemoveAt(indexEnd);
                     indexEnd--;
                 }
                 cnt--;
@@ -40,10 +39,6 @@ namespace ImageQuantization
                 mean = FastMean(mean, removedEdge);
                 prevSD = SD;
                 SD = CalculateSD(mean);
-                //prevReduction = reduction;
-                //reduction = prevSD - SD;
-                //Console.WriteLine("PREV SD:" + prevSD + " CURRENT SD: " + SD);
-                //Console.WriteLine(Math.Abs(reduction - prevReduction));
             }
             return k;
         }
@@ -65,8 +60,9 @@ namespace ImageQuantization
         public double CalculateSD(double mean)
         {
             double up = 0, down = cnt;
-            foreach(Edge e in Edges)
+            for(int i = indexStart; i <= indexEnd; i++)
             {
+                Edge e = Edges[i];
                 up += (Math.Abs(e.distance - mean) * Math.Abs(e.distance - mean));
             }
             return Math.Sqrt(up/down);
