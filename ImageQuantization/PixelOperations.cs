@@ -50,6 +50,14 @@ namespace ImageQuantization
 
             Prim();
             MST.RemoveAt(0);
+            foreach(Edge e in MST)
+            {
+               //Console.WriteLine(e.distance);
+                mstSUM += e.distance;
+            }
+            AutomaticKDetection AKD = new AutomaticKDetection();
+            AKD.Edges = MST;
+            Console.WriteLine(AKD.Calculate());
             Cluster(k);
             Representatives();
             Recolor();
